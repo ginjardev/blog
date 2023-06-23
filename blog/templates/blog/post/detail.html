@@ -22,7 +22,7 @@
         Comment {{ forloop.counter }} by {{ comment.name }}
         {{ comment.created }}
     </p>
-    <!-- {{ comment.body|linebreaks }} -->
+    {{ comment.body|linebreaks }}
     </div>
     {% empty %}
     <p>There are no comments.</p>
