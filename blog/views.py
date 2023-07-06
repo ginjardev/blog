@@ -3,7 +3,8 @@ from .models import Post, Comment
 from django.http import Http404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.views.generic import ListView
-from .forms import EmailPostForm, CommentForm
+from .forms import EmailPostForm, CommentForm, SearchForm
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
 from taggit.models import Tag
@@ -72,6 +73,24 @@ def post_comment(request, post_id):
         comment.save()
 
     return render(request, 'blog/post/comment.html', {'post': post, 'form': form, 'comment': comment})    
+
+
+def post_search(request):
+    form = SearchForm()
+    query = None
+    results = []
+
+    if 'query' in request.GET:
+        form = SearchForm(request.GET)
+        if form.is_valid():
+            query = form.cleaned_data['query']
+            search_vector = SearchVector('title', 'body')
+            search_query = SearchQuery(query)
+            results = Post.published.annotate(
+                search = search_vector, rank=SearchRank(search_vector, search_query)
+            ).filter(search=search_query).order_by('-rank')
+
+    return render(request, 'blog/post/search.html', {'form': form, 'query': query, 'results': results})
 
 class PostListView(ListView):
     queryset = Post.published.all()
